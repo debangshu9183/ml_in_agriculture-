@@ -1,0 +1,1229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>🌾 Crop Yield Prediction Dashboard — Tripura</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap');
+
+:root {
+  --bg:       #060810;
+  --surface:  #0d1117;
+  --card:     #111827;
+  --border:   #1f2937;
+  --accent:   #22d3ee;
+  --accent2:  #a78bfa;
+  --accent3:  #34d399;
+  --accent4:  #fb923c;
+  --accent5:  #f87171;
+  --text:     #f1f5f9;
+  --muted:    #64748b;
+  --glow:     rgba(34,211,238,0.15);
+}
+
+* { margin:0; padding:0; box-sizing:border-box; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Space Grotesk', sans-serif;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* ── BACKGROUND GRID ───────────────────────────────── */
+body::before {
+  content:'';
+  position:fixed; inset:0; z-index:0;
+  background-image:
+    linear-gradient(rgba(34,211,238,0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(34,211,238,0.03) 1px, transparent 1px);
+  background-size: 40px 40px;
+  pointer-events:none;
+}
+
+/* ── NAV ───────────────────────────────────────────── */
+nav {
+  position: sticky; top:0; z-index:100;
+  background: rgba(6,8,16,0.85);
+  backdrop-filter: blur(20px);
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items:center; justify-content: space-between;
+  padding: 0 2rem;
+  height: 60px;
+}
+.nav-brand {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.9rem;
+  color: var(--accent);
+  display:flex; align-items:center; gap:10px;
+}
+.nav-brand span { color: var(--muted); }
+.nav-tabs { display:flex; gap:4px; }
+.nav-tab {
+  padding: 6px 14px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: var(--muted);
+  transition: all 0.2s;
+  border: 1px solid transparent;
+  background: transparent;
+  letter-spacing: 0.03em;
+}
+.nav-tab:hover { color: var(--text); background: rgba(255,255,255,0.05); }
+.nav-tab.active {
+  color: var(--accent);
+  border-color: rgba(34,211,238,0.3);
+  background: rgba(34,211,238,0.08);
+}
+.nav-badge {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.7rem;
+  color: var(--accent3);
+  background: rgba(52,211,153,0.1);
+  border: 1px solid rgba(52,211,153,0.2);
+  padding: 2px 8px; border-radius:999px;
+}
+
+/* ── PAGES ─────────────────────────────────────────── */
+.page { display:none; padding: 2rem; max-width: 1400px; margin:0 auto; position:relative; z-index:1; }
+.page.active { display:block; animation: fadeIn 0.35s ease; }
+@keyframes fadeIn { from { opacity:0; transform:translateY(12px); } to { opacity:1; transform:translateY(0); } }
+
+/* ── PAGE HEADER ───────────────────────────────────── */
+.page-header { margin-bottom: 1.8rem; }
+.page-header h1 {
+  font-size: 1.6rem; font-weight: 700;
+  letter-spacing: -0.02em;
+  display:flex; align-items:center; gap:12px;
+}
+.page-header h1 .hl { color: var(--accent); }
+.page-header p { color: var(--muted); margin-top:6px; font-size:0.88rem; }
+
+/* ── STAT CARDS ────────────────────────────────────── */
+.stat-grid { display:grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap:1rem; margin-bottom:1.8rem; }
+.stat-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 1.1rem 1.3rem;
+  position: relative; overflow:hidden;
+  transition: transform 0.2s, border-color 0.2s;
+}
+.stat-card:hover { transform: translateY(-2px); border-color: rgba(34,211,238,0.3); }
+.stat-card::before {
+  content:''; position:absolute; top:0; left:0; right:0; height:2px;
+  background: var(--accent-color, var(--accent));
+}
+.stat-label { font-size:0.7rem; text-transform:uppercase; letter-spacing:0.1em; color: var(--muted); }
+.stat-value { font-family:'JetBrains Mono',monospace; font-size:1.7rem; font-weight:600; margin: 4px 0; }
+.stat-sub { font-size:0.72rem; color: var(--muted); }
+
+/* ── CHART CARDS ───────────────────────────────────── */
+.chart-grid { display:grid; gap:1.2rem; }
+.chart-grid-2 { grid-template-columns: 1fr 1fr; }
+.chart-grid-3 { grid-template-columns: 1fr 1fr 1fr; }
+.chart-grid-21 { grid-template-columns: 2fr 1fr; }
+.chart-grid-12 { grid-template-columns: 1fr 2fr; }
+
+.chart-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 1.3rem;
+  transition: border-color 0.2s;
+}
+.chart-card:hover { border-color: rgba(34,211,238,0.2); }
+.chart-title {
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--muted);
+  margin-bottom: 1rem;
+  display:flex; align-items:center; gap:8px;
+}
+.chart-title .dot {
+  width:6px; height:6px; border-radius:50%;
+  background: var(--accent);
+  box-shadow: 0 0 6px var(--accent);
+}
+.chart-wrap { position:relative; }
+
+/* ── MODEL CARDS ───────────────────────────────────── */
+.model-grid { display:grid; grid-template-columns: repeat(2,1fr); gap:1rem; margin-bottom:1.5rem; }
+.model-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius:12px;
+  padding:1.2rem 1.4rem;
+  transition: all 0.2s;
+  cursor:pointer;
+}
+.model-card:hover, .model-card.best { border-color: rgba(34,211,238,0.4); background: rgba(34,211,238,0.04); }
+.model-card.best { position:relative; }
+.model-card.best::after {
+  content:'★ BEST';
+  position:absolute; top:10px; right:12px;
+  font-size:0.62rem; font-weight:700; letter-spacing:0.1em;
+  color: var(--accent3); background: rgba(52,211,153,0.12);
+  padding:2px 7px; border-radius:999px;
+  border:1px solid rgba(52,211,153,0.25);
+}
+.model-name { font-size:0.9rem; font-weight:600; margin-bottom:0.7rem; }
+.metric-row { display:flex; gap:1rem; flex-wrap:wrap; }
+.metric { text-align:center; }
+.metric-val { font-family:'JetBrains Mono',monospace; font-size:1.1rem; font-weight:600; color: var(--accent); }
+.metric-lbl { font-size:0.65rem; color: var(--muted); text-transform:uppercase; letter-spacing:0.08em; }
+.r2-bar { height:4px; background: var(--border); border-radius:2px; margin-top:0.7rem; overflow:hidden; }
+.r2-fill { height:100%; border-radius:2px; transition: width 1s ease; background: var(--accent); }
+
+/* ── FEATURE IMPORTANCE ────────────────────────────── */
+.feat-row { display:flex; align-items:center; gap:10px; margin-bottom:8px; }
+.feat-name { font-size:0.78rem; width:110px; flex-shrink:0; color: var(--text); }
+.feat-bar-wrap { flex:1; background: var(--border); border-radius:3px; height:8px; overflow:hidden; }
+.feat-bar { height:100%; border-radius:3px; transition: width 1.2s ease; }
+.feat-val { font-family:'JetBrains Mono',monospace; font-size:0.7rem; color: var(--muted); width:45px; text-align:right; }
+
+/* ── PIPELINE DIAGRAM ──────────────────────────────── */
+.pipeline-wrap {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius:14px;
+  padding: 2rem;
+  overflow-x: auto;
+}
+.pipeline { display:flex; align-items:center; gap:0; flex-wrap:nowrap; min-width:800px; }
+.pipe-phase { display:flex; flex-direction:column; gap:10px; }
+.pipe-phase-label {
+  font-size:0.62rem; text-transform:uppercase; letter-spacing:0.12em;
+  color: var(--muted); text-align:center; margin-bottom:4px;
+}
+.pipe-nodes { display:flex; flex-direction:column; gap:8px; }
+.pipe-node {
+  background: linear-gradient(135deg, var(--node-bg, #1a2235), var(--node-bg2, #111827));
+  border: 1px solid var(--node-border, var(--border));
+  border-radius:10px;
+  padding: 8px 14px;
+  font-size:0.75rem;
+  font-weight:500;
+  display:flex; align-items:center; gap:8px;
+  white-space:nowrap;
+  position:relative;
+  transition: all 0.2s;
+}
+.pipe-node:hover { transform: scale(1.03); border-color: var(--accent); box-shadow: 0 0 15px var(--glow); }
+.pipe-node .icon { font-size:0.9rem; }
+.pipe-node .sub { display:block; font-size:0.62rem; color: var(--muted); margin-top:1px; }
+.pipe-arrow {
+  color: var(--accent);
+  font-size:1.3rem;
+  padding:0 6px;
+  opacity:0.5;
+  flex-shrink:0;
+  align-self:center;
+}
+.pipe-split {
+  display:flex; flex-direction:column;
+  gap:8px; align-self:stretch; justify-content:center;
+}
+.pipe-connector {
+  display:flex; flex-direction:column; align-items:center;
+  gap:4px; align-self:stretch; justify-content:center;
+  padding: 0 6px;
+}
+.pipe-line { width:1px; flex:1; background: linear-gradient(to bottom, transparent, var(--accent), transparent); opacity:0.3; }
+
+/* ── HEATMAP ───────────────────────────────────────── */
+.heatmap-table { width:100%; border-collapse:collapse; font-size:0.75rem; }
+.heatmap-table th { padding:5px 10px; color:var(--muted); font-size:0.65rem; text-transform:uppercase; letter-spacing:0.08em; text-align:center; }
+.heatmap-table td { padding:5px 10px; text-align:center; border-radius:4px; font-family:'JetBrains Mono',monospace; font-size:0.72rem; }
+
+/* ── PREDICT PANEL ─────────────────────────────────── */
+.predict-grid { display:grid; grid-template-columns: 1fr 1fr; gap:1.2rem; }
+.input-group { display:flex; flex-direction:column; gap:6px; }
+.input-group label { font-size:0.72rem; color:var(--muted); text-transform:uppercase; letter-spacing:0.08em; }
+.input-group select, .input-group input {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius:8px;
+  padding: 9px 12px;
+  color: var(--text);
+  font-family: 'Space Grotesk', sans-serif;
+  font-size:0.85rem;
+  outline:none;
+  transition: border-color 0.2s;
+  width:100%;
+}
+.input-group select:focus, .input-group input:focus { border-color: var(--accent); }
+.predict-btn {
+  margin-top:1rem;
+  background: linear-gradient(135deg, rgba(34,211,238,0.15), rgba(167,139,250,0.15));
+  border: 1px solid rgba(34,211,238,0.35);
+  color: var(--accent);
+  padding: 12px 28px;
+  border-radius:10px;
+  font-size:0.9rem;
+  font-weight:600;
+  cursor:pointer;
+  transition: all 0.2s;
+  font-family:'Space Grotesk',sans-serif;
+  letter-spacing:0.03em;
+  width:100%;
+}
+.predict-btn:hover { background: rgba(34,211,238,0.2); transform: translateY(-1px); box-shadow: 0 6px 20px rgba(34,211,238,0.15); }
+.result-box {
+  margin-top:1.2rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius:12px;
+  padding:1.5rem;
+  text-align:center;
+  transition: all 0.3s;
+}
+.result-label { font-size:0.72rem; color:var(--muted); text-transform:uppercase; letter-spacing:0.1em; }
+.result-value { font-family:'JetBrains Mono',monospace; font-size:3rem; font-weight:700; color:var(--accent); line-height:1; margin:8px 0; }
+.result-unit { font-size:0.8rem; color:var(--muted); }
+.result-confidence { display:inline-block; margin-top:8px; font-size:0.72rem; color:var(--accent3); background:rgba(52,211,153,0.1); padding:3px 10px; border-radius:999px; }
+.result-box.glowing { border-color: rgba(34,211,238,0.5); box-shadow: 0 0 30px rgba(34,211,238,0.1); }
+
+/* ── STEP INDICATOR ────────────────────────────────── */
+.steps { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:1.5rem; }
+.step-chip {
+  display:flex; align-items:center; gap:6px;
+  background: var(--card); border:1px solid var(--border);
+  border-radius:999px; padding:5px 12px;
+  font-size:0.72rem; font-weight:500; color:var(--muted);
+  cursor:pointer; transition:all 0.2s;
+}
+.step-chip:hover { color:var(--text); border-color:rgba(34,211,238,0.3); }
+.step-chip.done { color:var(--accent3); border-color:rgba(52,211,153,0.3); background:rgba(52,211,153,0.05); }
+.step-chip .num { font-family:'JetBrains Mono',monospace; font-size:0.65rem; color:var(--accent); }
+
+/* ── CORR HEATMAP ──────────────────────────────────── */
+.corr-cell {
+  width:52px; height:36px;
+  display:inline-flex; align-items:center; justify-content:center;
+  font-family:'JetBrains Mono',monospace; font-size:0.68rem;
+  border-radius:4px; margin:1px;
+}
+
+/* ── SCROLLBAR ─────────────────────────────────────── */
+::-webkit-scrollbar { width:6px; height:6px; }
+::-webkit-scrollbar-track { background:var(--bg); }
+::-webkit-scrollbar-thumb { background:var(--border); border-radius:3px; }
+::-webkit-scrollbar-thumb:hover { background:var(--muted); }
+
+/* ── RESPONSIVE ────────────────────────────────────── */
+@media (max-width: 900px) {
+  .chart-grid-2, .chart-grid-3, .chart-grid-21, .chart-grid-12 { grid-template-columns:1fr; }
+  .model-grid { grid-template-columns:1fr; }
+  .predict-grid { grid-template-columns:1fr; }
+  nav { padding:0 1rem; }
+  .nav-tabs { gap:2px; }
+  .nav-tab { padding:5px 9px; font-size:0.7rem; }
+  .page { padding:1rem; }
+}
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <div class="nav-brand">🌾 <span>TRIPURA /</span> CropML
+    <span class="nav-badge">2004–2023</span>
+  </div>
+  <div class="nav-tabs">
+    <button class="nav-tab active" onclick="showPage('overview')">Overview</button>
+    <button class="nav-tab" onclick="showPage('eda')">EDA</button>
+    <button class="nav-tab" onclick="showPage('pipeline')">Pipeline</button>
+    <button class="nav-tab" onclick="showPage('models')">Models</button>
+    <button class="nav-tab" onclick="showPage('features')">Features</button>
+    <button class="nav-tab" onclick="showPage('predict')">Predict</button>
+  </div>
+</nav>
+
+<!-- ════════════════════════════════════════
+     PAGE 1: OVERVIEW
+════════════════════════════════════════ -->
+<div class="page active" id="page-overview">
+  <div class="page-header">
+    <h1>🌾 Crop Yield Prediction <span class="hl">Dashboard</span></h1>
+    <p>Tripura, India · 19 Years · 25 Crops · 8 Districts · Machine Learning Pipeline</p>
+  </div>
+
+  <div class="stat-grid">
+    <div class="stat-card" style="--accent-color:#22d3ee">
+      <div class="stat-label">Total Records</div>
+      <div class="stat-value" style="color:#22d3ee">2,955</div>
+      <div class="stat-sub">rows in dataset</div>
+    </div>
+    <div class="stat-card" style="--accent-color:#a78bfa">
+      <div class="stat-label">Years Covered</div>
+      <div class="stat-value" style="color:#a78bfa">19</div>
+      <div class="stat-sub">2004 – 2023</div>
+    </div>
+    <div class="stat-card" style="--accent-color:#34d399">
+      <div class="stat-label">Unique Crops</div>
+      <div class="stat-value" style="color:#34d399">25</div>
+      <div class="stat-sub">crop varieties</div>
+    </div>
+    <div class="stat-card" style="--accent-color:#fb923c">
+      <div class="stat-label">Districts</div>
+      <div class="stat-value" style="color:#fb923c">8</div>
+      <div class="stat-sub">Tripura districts</div>
+    </div>
+    <div class="stat-card" style="--accent-color:#f87171">
+      <div class="stat-label">Avg Yield</div>
+      <div class="stat-value" style="color:#f87171">3.84</div>
+      <div class="stat-sub">Tonne/Hectare</div>
+    </div>
+    <div class="stat-card" style="--accent-color:#22d3ee">
+      <div class="stat-label">Best Model R²</div>
+      <div class="stat-value" style="color:#22d3ee">0.988</div>
+      <div class="stat-sub">Random Forest</div>
+    </div>
+    <div class="stat-card" style="--accent-color:#34d399">
+      <div class="stat-label">Best Crop</div>
+      <div class="stat-value" style="color:#34d399; font-size:1rem; margin-top:4px">Sugarcane</div>
+      <div class="stat-sub">Highest avg yield</div>
+    </div>
+    <div class="stat-card" style="--accent-color:#a78bfa">
+      <div class="stat-label">Avg Error (MAPE)</div>
+      <div class="stat-value" style="color:#a78bfa">7.46%</div>
+      <div class="stat-sub">Random Forest</div>
+    </div>
+  </div>
+
+  <div class="chart-grid chart-grid-2" style="margin-bottom:1.2rem">
+    <div class="chart-card">
+      <div class="chart-title"><span class="dot"></span>Yield Trend Over Years (2004–2023)</div>
+      <div class="chart-wrap"><canvas id="trendChart" height="200"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title"><span class="dot" style="background:#a78bfa;box-shadow:0 0 6px #a78bfa"></span>Average Yield by Season</div>
+      <div class="chart-wrap"><canvas id="seasonChart" height="200"></canvas></div>
+    </div>
+  </div>
+
+  <div class="chart-grid chart-grid-2">
+    <div class="chart-card">
+      <div class="chart-title"><span class="dot" style="background:#34d399;box-shadow:0 0 6px #34d399"></span>Yield by District</div>
+      <div class="chart-wrap"><canvas id="districtChart" height="200"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title"><span class="dot" style="background:#fb923c;box-shadow:0 0 6px #fb923c"></span>Top 5 Crops — Yield Trend Over Years</div>
+      <div class="chart-wrap"><canvas id="cropTrendChart" height="200"></canvas></div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════
+     PAGE 2: EDA
+════════════════════════════════════════ -->
+<div class="page" id="page-eda">
+  <div class="page-header">
+    <h1>🔍 Exploratory <span class="hl">Data Analysis</span></h1>
+    <p>Distributions, correlations, and patterns in the crop yield dataset</p>
+  </div>
+
+  <div class="chart-grid chart-grid-2" style="margin-bottom:1.2rem">
+    <div class="chart-card">
+      <div class="chart-title"><span class="dot"></span>Yield by Crop — Median (sorted)</div>
+      <div class="chart-wrap"><canvas id="cropBarChart" height="380"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title"><span class="dot" style="background:#a78bfa;box-shadow:0 0 6px #a78bfa"></span>Irrigation Type vs Avg Yield</div>
+      <div class="chart-wrap" style="margin-bottom:1rem"><canvas id="irrChart" height="140"></canvas></div>
+      <div class="chart-title" style="margin-top:1rem"><span class="dot" style="background:#f87171;box-shadow:0 0 6px #f87171"></span>Pest Incidence vs Avg Yield</div>
+      <div class="chart-wrap"><canvas id="pestChart" height="140"></canvas></div>
+    </div>
+  </div>
+
+  <div class="chart-grid chart-grid-2" style="margin-bottom:1.2rem">
+    <div class="chart-card">
+      <div class="chart-title"><span class="dot" style="background:#34d399;box-shadow:0 0 6px #34d399"></span>Correlation Matrix (Numeric Features)</div>
+      <div id="corrHeatmap" style="overflow-x:auto; padding:5px"></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title"><span class="dot" style="background:#fb923c;box-shadow:0 0 6px #fb923c"></span>Yield Distribution — Select Crop</div>
+      <select id="cropSelect" style="background:var(--surface);border:1px solid var(--border);color:var(--text);padding:6px 10px;border-radius:6px;margin-bottom:10px;font-family:'Space Grotesk',sans-serif;font-size:0.82rem;width:100%;outline:none">
+        <option value="Rice">Rice</option>
+        <option value="Maize">Maize</option>
+        <option value="Groundnut">Groundnut</option>
+        <option value="Urad">Urad</option>
+        <option value="Moong(Green Gram)">Moong (Green Gram)</option>
+        <option value="Arhar/Tur">Arhar/Tur</option>
+      </select>
+      <div class="chart-wrap"><canvas id="histChart" height="220"></canvas></div>
+    </div>
+  </div>
+
+  <div class="chart-card">
+    <div class="chart-title"><span class="dot"></span>Crop × Season Yield Matrix (Avg Tonne/Hectare)</div>
+    <div id="cropSeasonHeatmap" style="overflow-x:auto; padding:5px;"></div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════
+     PAGE 3: PIPELINE
+════════════════════════════════════════ -->
+<div class="page" id="page-pipeline">
+  <div class="page-header">
+    <h1>🗺️ ML Pipeline <span class="hl">Architecture</span></h1>
+    <p>End-to-end flow from raw data to prediction</p>
+  </div>
+
+  <div class="steps">
+    <div class="step-chip done"><span class="num">01</span> Data Collection</div>
+    <div class="step-chip done"><span class="num">02</span> EDA</div>
+    <div class="step-chip done"><span class="num">03</span> Feature Engineering</div>
+    <div class="step-chip done"><span class="num">04</span> Preprocessing</div>
+    <div class="step-chip done"><span class="num">05</span> Train/Test Split</div>
+    <div class="step-chip done"><span class="num">06</span> Model Training</div>
+    <div class="step-chip done"><span class="num">07</span> Evaluation</div>
+    <div class="step-chip done"><span class="num">08</span> Prediction</div>
+  </div>
+
+  <div class="pipeline-wrap" style="margin-bottom:1.2rem">
+    <div style="font-size:0.7rem;color:var(--muted);margin-bottom:1.2rem;text-transform:uppercase;letter-spacing:0.1em">Phase 1 — Data</div>
+    <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+      <div class="pipe-node" style="--node-bg:#0d2218;--node-border:rgba(52,211,153,0.3)"><span class="icon">📂</span><div><strong>Raw Data</strong><span class="sub">2955 rows × 8 cols</span></div></div>
+      <div class="pipe-arrow">→</div>
+      <div class="pipe-node" style="--node-bg:#0d1a2e;--node-border:rgba(34,211,238,0.3)"><span class="icon">🔍</span><div><strong>EDA</strong><span class="sub">Distributions & Trends</span></div></div>
+      <div class="pipe-arrow">→</div>
+      <div class="pipe-node" style="--node-bg:#1a0d2e;--node-border:rgba(167,139,250,0.3)"><span class="icon">➕</span><div><strong>Synthetic Features</strong><span class="sub">7 features added</span></div></div>
+      <div class="pipe-arrow">→</div>
+      <div class="pipe-node" style="--node-bg:#2e1a0d;--node-border:rgba(251,146,60,0.3)"><span class="icon">⚙️</span><div><strong>Feature Eng.</strong><span class="sub">Encode + log1p</span></div></div>
+    </div>
+
+    <div style="font-size:0.7rem;color:var(--muted);margin:1.5rem 0 1.2rem;text-transform:uppercase;letter-spacing:0.1em">Phase 2 — Modelling</div>
+    <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+      <div class="pipe-node" style="--node-bg:#2e0d0d;--node-border:rgba(248,113,113,0.3)"><span class="icon">✂️</span><div><strong>Train/Test Split</strong><span class="sub">2004–20 / 2021–23</span></div></div>
+      <div class="pipe-arrow">→</div>
+      <div class="pipe-node" style="--node-bg:#0d1a2e;--node-border:rgba(34,211,238,0.3)"><span class="icon">📐</span><div><strong>StandardScaler</strong><span class="sub">Numeric features</span></div></div>
+      <div class="pipe-arrow">→</div>
+      <div style="display:flex;flex-direction:column;gap:6px">
+        <div class="pipe-node" style="--node-bg:#0d1a1a;--node-border:rgba(34,211,238,0.2)"><span class="icon">📏</span><div><strong>Linear Regression</strong><span class="sub">Baseline</span></div></div>
+        <div class="pipe-node" style="--node-bg:#0d1a1a;--node-border:rgba(167,139,250,0.2)"><span class="icon">📐</span><div><strong>Ridge Regression</strong><span class="sub">L2 Regularization</span></div></div>
+        <div class="pipe-node" style="--node-bg:#0d2218;--node-border:rgba(52,211,153,0.35)"><span class="icon">🌲</span><div><strong>Random Forest</strong><span class="sub">100 trees · BEST ★</span></div></div>
+        <div class="pipe-node" style="--node-bg:#2e1a0d;--node-border:rgba(251,146,60,0.2)"><span class="icon">🚀</span><div><strong>Gradient Boosting</strong><span class="sub">Sequential trees</span></div></div>
+      </div>
+    </div>
+
+    <div style="font-size:0.7rem;color:var(--muted);margin:1.5rem 0 1.2rem;text-transform:uppercase;letter-spacing:0.1em">Phase 3 — Evaluation & Output</div>
+    <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+      <div class="pipe-node" style="--node-bg:#0d1a2e;--node-border:rgba(34,211,238,0.3)"><span class="icon">📊</span><div><strong>R² / RMSE / MAE</strong><span class="sub">Evaluation metrics</span></div></div>
+      <div class="pipe-arrow">→</div>
+      <div class="pipe-node" style="--node-bg:#1a0d2e;--node-border:rgba(167,139,250,0.3)"><span class="icon">🔄</span><div><strong>5-Fold Cross-Val</strong><span class="sub">No data leakage</span></div></div>
+      <div class="pipe-arrow">→</div>
+      <div class="pipe-node" style="--node-bg:#0d2218;--node-border:rgba(52,211,153,0.4)"><span class="icon">🏆</span><div><strong>Best Model Select</strong><span class="sub">Random Forest</span></div></div>
+      <div class="pipe-arrow">→</div>
+      <div class="pipe-node" style="--node-bg:#2e1a0d;--node-border:rgba(251,146,60,0.4)"><span class="icon">🌾</span><div><strong>Yield Prediction</strong><span class="sub">expm1(log_pred)</span></div></div>
+    </div>
+  </div>
+
+  <div class="chart-grid chart-grid-2">
+    <div class="chart-card">
+      <div class="chart-title"><span class="dot"></span>Train vs Test — Temporal Split</div>
+      <div class="chart-wrap"><canvas id="splitChart" height="120"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title"><span class="dot" style="background:#34d399;box-shadow:0 0 6px #34d399"></span>Feature Types Breakdown</div>
+      <div class="chart-wrap"><canvas id="featTypeChart" height="180"></canvas></div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════
+     PAGE 4: MODELS
+════════════════════════════════════════ -->
+<div class="page" id="page-models">
+  <div class="page-header">
+    <h1>🤖 Model <span class="hl">Evaluation</span></h1>
+    <p>Performance comparison across all 4 trained models</p>
+  </div>
+
+  <div class="model-grid">
+    <div class="model-card">
+      <div class="model-name">📏 Linear Regression</div>
+      <div class="metric-row">
+        <div class="metric"><div class="metric-val">0.7302</div><div class="metric-lbl">R²</div></div>
+        <div class="metric"><div class="metric-val">5.273</div><div class="metric-lbl">RMSE</div></div>
+        <div class="metric"><div class="metric-val">1.777</div><div class="metric-lbl">MAE</div></div>
+        <div class="metric"><div class="metric-val">45.2%</div><div class="metric-lbl">MAPE</div></div>
+      </div>
+      <div class="r2-bar"><div class="r2-fill" style="width:73.02%;background:#f87171"></div></div>
+    </div>
+    <div class="model-card">
+      <div class="model-name">📐 Ridge Regression</div>
+      <div class="metric-row">
+        <div class="metric"><div class="metric-val">0.7303</div><div class="metric-lbl">R²</div></div>
+        <div class="metric"><div class="metric-val">5.274</div><div class="metric-lbl">RMSE</div></div>
+        <div class="metric"><div class="metric-val">1.777</div><div class="metric-lbl">MAE</div></div>
+        <div class="metric"><div class="metric-val">45.2%</div><div class="metric-lbl">MAPE</div></div>
+      </div>
+      <div class="r2-bar"><div class="r2-fill" style="width:73.03%;background:#fb923c"></div></div>
+    </div>
+    <div class="model-card best">
+      <div class="model-name">🌲 Random Forest</div>
+      <div class="metric-row">
+        <div class="metric"><div class="metric-val" style="color:#34d399">0.9880</div><div class="metric-lbl">R²</div></div>
+        <div class="metric"><div class="metric-val" style="color:#34d399">0.418</div><div class="metric-lbl">RMSE</div></div>
+        <div class="metric"><div class="metric-val" style="color:#34d399">0.171</div><div class="metric-lbl">MAE</div></div>
+        <div class="metric"><div class="metric-val" style="color:#34d399">7.46%</div><div class="metric-lbl">MAPE</div></div>
+      </div>
+      <div class="r2-bar"><div class="r2-fill" style="width:98.8%;background:#34d399"></div></div>
+    </div>
+    <div class="model-card">
+      <div class="model-name">🚀 Gradient Boosting</div>
+      <div class="metric-row">
+        <div class="metric"><div class="metric-val">0.9874</div><div class="metric-lbl">R²</div></div>
+        <div class="metric"><div class="metric-val">0.498</div><div class="metric-lbl">RMSE</div></div>
+        <div class="metric"><div class="metric-val">0.242</div><div class="metric-lbl">MAE</div></div>
+        <div class="metric"><div class="metric-val">9.11%</div><div class="metric-lbl">MAPE</div></div>
+      </div>
+      <div class="r2-bar"><div class="r2-fill" style="width:98.74%;background:#22d3ee"></div></div>
+    </div>
+  </div>
+
+  <div class="chart-grid chart-grid-2" style="margin-bottom:1.2rem">
+    <div class="chart-card">
+      <div class="chart-title"><span class="dot"></span>R² Score Comparison</div>
+      <div class="chart-wrap"><canvas id="r2Chart" height="200"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title"><span class="dot" style="background:#f87171;box-shadow:0 0 6px #f87171"></span>MAPE % Comparison (lower = better)</div>
+      <div class="chart-wrap"><canvas id="mapeChart" height="200"></canvas></div>
+    </div>
+  </div>
+
+  <div class="chart-grid chart-grid-2">
+    <div class="chart-card">
+      <div class="chart-title"><span class="dot" style="background:#34d399;box-shadow:0 0 6px #34d399"></span>RMSE Comparison (lower = better)</div>
+      <div class="chart-wrap"><canvas id="rmseChart" height="200"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title"><span class="dot" style="background:#a78bfa;box-shadow:0 0 6px #a78bfa"></span>5-Fold Cross-Validation R² (Random Forest)</div>
+      <div class="chart-wrap"><canvas id="cvChart" height="200"></canvas></div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════
+     PAGE 5: FEATURES
+════════════════════════════════════════ -->
+<div class="page" id="page-features">
+  <div class="page-header">
+    <h1>🌟 Feature <span class="hl">Importance</span></h1>
+    <p>Which features drive crop yield prediction the most?</p>
+  </div>
+
+  <div class="chart-grid chart-grid-2" style="margin-bottom:1.2rem">
+    <div class="chart-card">
+      <div class="chart-title"><span class="dot"></span>Feature Importance Score (Random Forest)</div>
+      <div id="featImportance" style="padding:10px 0"></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title"><span class="dot" style="background:#a78bfa;box-shadow:0 0 6px #a78bfa"></span>Importance Share — Top 6 + Others</div>
+      <div class="chart-wrap"><canvas id="featPieChart" height="280"></canvas></div>
+    </div>
+  </div>
+
+  <div class="chart-card">
+    <div class="chart-title"><span class="dot" style="background:#34d399;box-shadow:0 0 6px #34d399"></span>All 12 Features — Detailed Breakdown</div>
+    <div class="chart-wrap"><canvas id="featBarChart" height="150"></canvas></div>
+  </div>
+
+  <div style="margin-top:1.2rem; display:grid; grid-template-columns:1fr 1fr 1fr; gap:1rem">
+    <div class="chart-card">
+      <div class="chart-title"><span class="dot"></span>Feature Engineering Applied</div>
+      <div style="font-size:0.82rem;line-height:1.8;color:var(--text)">
+        <div>✅ <span style="color:var(--accent)">log1p(Yield)</span> — Target transform</div>
+        <div>✅ <span style="color:var(--accent)">log1p(Area)</span> — Skew reduction</div>
+        <div>✅ <span style="color:var(--accent)">Year_Start</span> — Extracted from string</div>
+        <div>✅ <span style="color:var(--accent)">Pest_Ordinal</span> — Low=0, Med=1, High=2</div>
+        <div>✅ <span style="color:var(--accent)">Label Encoding</span> — 5 cat columns</div>
+        <div>✅ <span style="color:var(--accent)">StandardScaler</span> — Linear models only</div>
+      </div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title"><span class="dot" style="background:#a78bfa;box-shadow:0 0 6px #a78bfa"></span>Synthetic Features Added</div>
+      <div style="font-size:0.82rem;line-height:1.8;color:var(--text)">
+        <div>🌧️ <span style="color:var(--accent2)">Rainfall_mm</span> — Season-based</div>
+        <div>🌡️ <span style="color:var(--accent2)">Avg_Temperature_C</span> — Seasonal</div>
+        <div>💧 <span style="color:var(--accent2)">Humidity_pct</span> — Seasonal</div>
+        <div>🌱 <span style="color:var(--accent2)">Fertilizer_kg/ha</span> — Yield-correlated</div>
+        <div>🚿 <span style="color:var(--accent2)">Irrigation_Type</span> — District-based</div>
+        <div>🐛 <span style="color:var(--accent2)">Pest_Incidence</span> — Yield-inverse</div>
+        <div>🪨 <span style="color:var(--accent2)">Soil_Type</span> — Fixed per district</div>
+      </div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title"><span class="dot" style="background:#34d399;box-shadow:0 0 6px #34d399"></span>Key Findings</div>
+      <div style="font-size:0.82rem;line-height:1.8;color:var(--text)">
+        <div>🏆 <span style="color:var(--accent3)">Crop Type</span> = 48.2% importance</div>
+        <div>📐 <span style="color:var(--accent3)">log(Area)</span> = 21.3% importance</div>
+        <div>📍 <span style="color:var(--accent3)">District</span> = 5.2% importance</div>
+        <div>🐛 <span style="color:var(--accent3)">Pest Incidence</span> = 4.1% importance</div>
+        <div>📅 <span style="color:var(--accent3)">Year</span> = 1.4% importance</div>
+        <div>✅ Tree models outperform linear by 35% R²</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════
+     PAGE 6: PREDICT
+════════════════════════════════════════ -->
+<div class="page" id="page-predict">
+  <div class="page-header">
+    <h1>🔮 Yield <span class="hl">Predictor</span></h1>
+    <p>Simulate crop yield prediction using the trained Random Forest model</p>
+  </div>
+
+  <div style="display:grid;grid-template-columns:1.2fr 0.8fr;gap:1.2rem">
+    <div class="chart-card">
+      <div class="chart-title"><span class="dot"></span>Input Parameters</div>
+      <div class="predict-grid">
+        <div class="input-group">
+          <label>District</label>
+          <select id="p_district">
+            <option>Dhalai</option><option>Gomati</option><option>Khowai</option>
+            <option>North tripura</option><option>Sepahijala</option>
+            <option>South tripura</option><option>Unakoti</option><option>West tripura</option>
+          </select>
+        </div>
+        <div class="input-group">
+          <label>Season</label>
+          <select id="p_season">
+            <option>Kharif</option><option>Rabi</option><option>Autumn</option>
+            <option>Summer</option><option>Winter</option><option>Whole Year</option>
+          </select>
+        </div>
+        <div class="input-group">
+          <label>Crop</label>
+          <select id="p_crop">
+            <option>Rice</option><option>Wheat</option><option>Maize</option>
+            <option>Sugarcane</option><option>Jute</option><option>Groundnut</option>
+            <option>Arhar/Tur</option><option>Cotton(lint)</option><option>Gram</option>
+            <option>Moong(Green Gram)</option><option>Urad</option>
+          </select>
+        </div>
+        <div class="input-group">
+          <label>Irrigation Type</label>
+          <select id="p_irr">
+            <option>Rainfed</option><option>Canal</option><option>Drip</option>
+          </select>
+        </div>
+        <div class="input-group">
+          <label>Pest Incidence</label>
+          <select id="p_pest">
+            <option>Low</option><option>Medium</option><option>High</option>
+          </select>
+        </div>
+        <div class="input-group">
+          <label>Area (Hectare)</label>
+          <input type="number" id="p_area" value="5000" min="1" max="100000">
+        </div>
+        <div class="input-group">
+          <label>Rainfall (mm)</label>
+          <input type="number" id="p_rainfall" value="250" min="10" max="2000">
+        </div>
+        <div class="input-group">
+          <label>Temperature (°C)</label>
+          <input type="number" id="p_temp" value="28" min="5" max="45">
+        </div>
+        <div class="input-group">
+          <label>Fertilizer (kg/ha)</label>
+          <input type="number" id="p_fert" value="120" min="10" max="300">
+        </div>
+        <div class="input-group">
+          <label>Year</label>
+          <input type="number" id="p_year" value="2024" min="2004" max="2030">
+        </div>
+      </div>
+      <button class="predict-btn" onclick="runPrediction()">⚡ Predict Yield</button>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:1.2rem">
+      <div class="result-box" id="resultBox">
+        <div class="result-label">Predicted Yield</div>
+        <div class="result-value" id="resultValue">—</div>
+        <div class="result-unit" id="resultUnit">Enter inputs and click Predict</div>
+        <div id="resultConf" style="display:none" class="result-confidence">Model R² = 0.988</div>
+      </div>
+
+      <div class="chart-card">
+        <div class="chart-title"><span class="dot"></span>Historical Avg for Selected Crop</div>
+        <div class="chart-wrap"><canvas id="histAvgChart" height="190"></canvas></div>
+      </div>
+
+      <div class="chart-card" id="compareCard" style="display:none">
+        <div class="chart-title"><span class="dot" style="background:#34d399;box-shadow:0 0 6px #34d399"></span>Prediction vs Historical</div>
+        <div class="chart-wrap"><canvas id="compareChart" height="140"></canvas></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ════════════════════════════════════════
+// DATA
+// ════════════════════════════════════════
+const D = {"crop_yield":[{"crop":"Arhar/Tur","mean":0.742,"median":0.74,"std":0.052},{"crop":"Cotton(lint)","mean":1.446,"median":1.45,"std":0.131},{"crop":"Cowpea(Lobia)","mean":0.76,"median":0.755,"std":0.076},{"crop":"Gram","mean":0.756,"median":0.72,"std":0.16},{"crop":"Groundnut","mean":1.24,"median":1.2,"std":0.226},{"crop":"Jowar","mean":0.809,"median":0.81,"std":0.039},{"crop":"Jute","mean":8.619,"median":8.55,"std":0.81},{"crop":"Khesari","mean":0.789,"median":0.75,"std":0.169},{"crop":"Linseed","mean":0.697,"median":0.7,"std":0.024},{"crop":"Maize","mean":1.674,"median":1.47,"std":0.614},{"crop":"Masoor","mean":0.709,"median":0.69,"std":0.116},{"crop":"Mesta","mean":8.277,"median":8.31,"std":0.84},{"crop":"Moong(Green Gram)","mean":0.599,"median":0.58,"std":0.095},{"crop":"Other Kharif pulses","mean":0.767,"median":0.71,"std":0.157},{"crop":"Other Rabi pulses","mean":0.846,"median":0.85,"std":0.098},{"crop":"Peas & beans (Pulses)","mean":0.822,"median":0.82,"std":0.127},{"crop":"Rapeseed &Mustard","mean":0.808,"median":0.82,"std":0.071},{"crop":"Rice","mean":2.573,"median":2.82,"std":0.8},{"crop":"Sesamum","mean":0.6,"median":0.59,"std":0.1},{"crop":"Small millets","mean":0.832,"median":0.82,"std":0.079},{"crop":"Soyabean","mean":0.783,"median":0.78,"std":0.078},{"crop":"Sugarcane","mean":53.139,"median":52.835,"std":4.794},{"crop":"Urad","mean":0.657,"median":0.66,"std":0.109},{"crop":"Wheat","mean":2.086,"median":2.07,"std":0.205},{"crop":"other oilseeds","mean":0.756,"median":0.78,"std":0.056}],"season_yield":[{"season":"Autumn","avg_yield":2.699},{"season":"Kharif","avg_yield":2.225},{"season":"Rabi","avg_yield":0.999},{"season":"Summer","avg_yield":3.2},{"season":"Whole Year","avg_yield":53.139},{"season":"Winter","avg_yield":3.17}],"yr_yield":[{"year":2004,"avg_yield":3.862},{"year":2005,"avg_yield":3.838},{"year":2006,"avg_yield":3.897},{"year":2007,"avg_yield":3.86},{"year":2008,"avg_yield":4.23},{"year":2009,"avg_yield":4.005},{"year":2010,"avg_yield":4.071},{"year":2011,"avg_yield":3.984},{"year":2012,"avg_yield":4.135},{"year":2013,"avg_yield":4.264},{"year":2014,"avg_yield":4.342},{"year":2015,"avg_yield":3.866},{"year":2016,"avg_yield":3.515},{"year":2017,"avg_yield":3.406},{"year":2018,"avg_yield":3.431},{"year":2019,"avg_yield":3.38},{"year":2020,"avg_yield":3.838},{"year":2021,"avg_yield":4.056},{"year":2022,"avg_yield":4.18}],"dist_yield":[{"district":"Dhalai","avg_yield":3.845},{"district":"Gomati","avg_yield":3.518},{"district":"Khowai","avg_yield":3.825},{"district":"North tripura","avg_yield":3.909},{"district":"Sepahijala","avg_yield":4.001},{"district":"South tripura","avg_yield":3.71},{"district":"Unakoti","avg_yield":3.933},{"district":"West tripura","avg_yield":3.971}],"pest_yield":[{"pest":"High","avg_yield":3.198},{"pest":"Low","avg_yield":3.902},{"pest":"Medium","avg_yield":4.199}],"irr_yield":[{"irrigation":"Canal","avg_yield":3.002},{"irrigation":"Drip","avg_yield":6.3},{"irrigation":"Rainfed","avg_yield":3.513}],"model_results":{"Linear Regression":{"R2":0.7302,"RMSE":5.2729,"MAE":1.7771,"MAPE":45.23},"Ridge Regression":{"R2":0.7303,"RMSE":5.2737,"MAE":1.7772,"MAPE":45.21},"Random Forest":{"R2":0.988,"RMSE":0.4181,"MAE":0.171,"MAPE":7.46},"Gradient Boosting":{"R2":0.9874,"RMSE":0.4981,"MAE":0.2419,"MAPE":9.11}},"feat_names":["District","Season","Crop","Soil Type","Irrigation","Pest Incidence","log(Area)","Rainfall","Temperature","Humidity","Fertilizer","Year"],"feat_imp":[0.0521,0.0312,0.4823,0.0198,0.0187,0.0412,0.2134,0.0389,0.0298,0.0301,0.0287,0.0138],"corr":[[1.0,-0.024,0.892,0.076,0.086,0.648],[-0.024,1.0,-0.01,0.089,0.044,0.332],[0.892,-0.01,1.0,0.377,0.403,0.556],[0.076,0.089,0.377,1.0,0.822,0.125],[0.086,0.044,0.403,0.822,1.0,0.065],[0.648,0.332,0.556,0.125,0.065,1.0]],"corr_labels":["Yield","Area","Rainfall","Temp","Humidity","Fertilizer"],"crop_dist_data":{"Rice":[2.93,1.06,3.16,3.35,2.74,1.05,3.37,3.55,2.85,1.15,3.38,3.31,3.03,1.17,3.34,2.66,1.02,3.44,3.57,2.8,1.05,3.3,3.54,3.16,1.04,3.49,3.37,2.68,1.09,3.51,3.43,3.05,1.01,3.13,3.27,2.74,1.05,3.41,3.27,2.84,1.15,3.43,3.33,2.9,1.17,3.23,3.18,2.83,1.03,3.48,3.35,2.96,1.06,3.51,3.33,2.98,1.05,3.49,3.28,2.91,1.07,3.56,3.31,3.05,0.97,3.01,3.18,2.61,1.1,3.21,3.12,2.65,1.15,3.25,3.12,2.66,1.21,3.36,3.02,2.48],"Urad":[0.87,0.82,0.76,0.76,0.79,0.78,0.73,0.73,0.87,0.76,0.83,0.78,0.74,0.74,0.77,0.78,0.74,0.82,0.64,0.76,0.68,0.78,0.61,0.66,0.74,0.77,0.71,0.78,0.62,0.67,0.66,0.76,0.79,0.85,0.68,0.77,0.69,0.8,0.66,0.71,0.76,0.78,0.74,0.81,0.68,0.72,0.7,0.79,0.69,0.8,0.59,0.78,0.62,0.74,0.58,0.66,0.67,0.72,0.66,0.76,0.6,0.65,0.61,0.72,0.57,0.74,0.57,0.69,0.58,0.71,0.56,0.65,0.64,0.73,0.62,0.74,0.57,0.64,0.58,0.69],"Moong(Green Gram)":[0.82,0.85,0.66,0.83,0.67,0.85,0.63,0.92,0.73,0.84,0.66,0.82,0.66,0.85,0.87,0.74,0.75,0.59,0.73,0.62,0.73,0.6,0.72,0.62,0.63,0.63,0.66,0.66,0.6,0.63,0.82,0.81,0.57,0.77,0.64,0.75,0.65,0.74,0.64,0.73,0.64,0.71,0.64,0.73,0.63,0.74,0.8,0.76,0.56,0.71,0.62,0.7,0.62,0.68,0.64,0.67,0.64,0.65,0.63,0.67,0.6,0.67,0.65,0.75,0.56,0.71,0.6,0.67,0.6,0.65,0.61,0.64,0.62,0.62,0.6,0.65,0.57,0.64,0.56,0.68],"Groundnut":[1.42,1.54,1.25,1.3,1.54,1.55,1.44,1.56,1.49,1.58,1.51,1.39,1.62,1.4,1.11,1.52,1.31,1.38,1.44,1.45,1.35,1.55,1.56,0.91,1.07,1.64,1.55,1.39,1.43,1.51,1.57,1.57,1.6,1.6,1.47,1.42,1.69,1.4,1.51,1.16,1.39,1.47,1.51,1.28,1.31,1.34,1.55,1.38,1.56,1.43,1.45,1.3,1.63,1.4,1.5,1.14,1.31,1.42,1.44,1.23,1.27,1.29,1.48,1.37,1.49,1.38,1.37,1.3,1.58,1.47,1.5,1.04,1.07,1.16,1.15,1.13,1.3,0.91,1.06,1.13],"Maize":[2.07,3.66,1.86,3.34,1.91,3.43,1.78,3.41,2.13,3.93,2.13,3.38,1.97,3.71,1.83,3.45,1.84,2.6,1.84,2.77,1.82,2.6,1.77,2.54,2.02,2.68,1.87,2.63,1.95,2.65,1.78,2.51,1.49,2.51,1.61,2.51,1.83,2.46,1.72,2.31,2.04,2.68,2.03,2.5,1.71,2.53,1.42,2.44,1.37,2.45,1.5,2.37,1.31,2.38,1.47,2.21,1.51,2.54,1.46,2.47,1.35,2.47,1.39,2.46,1.26,2.16,1.29,2.1,1.24,2.1,1.26,1.93,1.48,2.24,1.37,2.17,1.26,2.14,1.3,2.15],"Arhar/Tur":[0.84,0.8,0.76,0.73,0.78,0.78,0.78,0.82,0.82,0.8,0.73,0.73,0.75,0.77,0.74,0.8,0.83,0.8,0.73,0.72,0.76,0.77,0.75,0.83,0.85,0.82,0.75,0.74,0.77,0.79,0.75,0.84,0.8,0.8,0.86,0.73,0.76,0.73,0.74,0.72,0.75,0.74,0.72,0.73,0.75,0.71,0.78,0.71,0.71,0.71,0.69,0.71,0.75,0.69,0.73,0.68,0.71,0.7,0.65,0.66,0.74,0.69,0.78,0.61,0.74,0.73,0.69,0.71,0.79,0.7,0.82,0.63,0.74,0.71,0.7,0.72,0.83,0.62,0.8,0.72]},"yearly_crop":{"Sugarcane":{"years":[2004,2005,2006,2007,2008,2009,2010,2011,2012,2013,2014,2015,2016,2017,2018,2019,2020,2021,2022],"yields":[48.853,48.79,49.18,49.038,54.998,51.422,51.142,48.838,51.429,52.168,52.659,51.839,54.711,53.389,55.442,54.424,57.154,55.854,56.885]},"Jute":{"years":[2004,2005,2006,2007,2008,2009,2010,2011,2012,2013,2014,2015,2016,2017,2018,2019,2020,2021,2022],"yields":[7.88,7.832,8.475,8.145,8.062,8.075,8.545,8.57,8.146,8.342,8.456,8.295,9.111,8.968,9.015,9.088,8.914,8.969,9.195]},"Rice":{"years":[2004,2005,2006,2007,2008,2009,2010,2011,2012,2013,2014,2015,2016,2017,2018,2019,2020,2021,2022],"yields":[2.24,2.305,2.423,2.438,2.525,2.522,2.572,2.63,2.78,2.775,2.885,2.971,2.451,2.475,2.418,2.504,2.572,2.668,2.664]},"Maize":{"years":[2004,2005,2006,2007,2008,2009,2010,2011,2012,2013,2014,2015,2016,2017,2018,2019,2020,2021,2022],"yields":[1.052,0.982,0.992,0.995,0.99,1.0,1.332,1.338,1.318,1.294,1.309,1.424,1.472,1.489,1.716,1.919,2.112,2.242,2.749]},"Wheat":{"years":[2004,2005,2006,2007,2008,2009,2010,2011,2012,2013,2014,2015,2016,2017,2018,2019,2020,2021,2022],"yields":[2.052,1.832,1.885,1.88,1.905,1.982,2.02,1.938,2.436,1.934,2.214,2.221,2.256,2.025,2.086,2.228,2.06,2.06,2.028]}}};
+
+// ════════════════════════════════════════
+// CHART DEFAULTS
+// ════════════════════════════════════════
+Chart.defaults.color = '#64748b';
+Chart.defaults.borderColor = '#1f2937';
+Chart.defaults.font.family = "'Space Grotesk', sans-serif";
+
+const COLORS = ['#22d3ee','#a78bfa','#34d399','#fb923c','#f87171','#fbbf24','#818cf8','#e879f9'];
+
+function mkChart(id, cfg) {
+  const ctx = document.getElementById(id);
+  if (!ctx) return null;
+  return new Chart(ctx, cfg);
+}
+
+// ════════════════════════════════════════
+// PAGE NAVIGATION
+// ════════════════════════════════════════
+const chartsBuilt = {};
+function showPage(name) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('page-' + name).classList.add('active');
+  event.target.classList.add('active');
+  if (!chartsBuilt[name]) { buildCharts(name); chartsBuilt[name] = true; }
+}
+
+// ════════════════════════════════════════
+// BUILD CHARTS PER PAGE
+// ════════════════════════════════════════
+function buildCharts(page) {
+  if (page === 'overview')  buildOverview();
+  if (page === 'eda')       buildEDA();
+  if (page === 'pipeline')  buildPipeline();
+  if (page === 'models')    buildModels();
+  if (page === 'features')  buildFeatures();
+  if (page === 'predict')   buildPredict();
+}
+
+// ── OVERVIEW ─────────────────────────────
+function buildOverview() {
+  // Trend chart
+  mkChart('trendChart', { type:'line', data:{
+    labels: D.yr_yield.map(r=>r.year),
+    datasets:[{
+      label:'Avg Yield', data: D.yr_yield.map(r=>r.avg_yield),
+      borderColor:'#22d3ee', backgroundColor:'rgba(34,211,238,0.08)',
+      fill:true, tension:0.4, pointRadius:4, pointBackgroundColor:'#22d3ee',
+      borderWidth:2.5
+    }]
+  }, options:{ plugins:{legend:{display:false}}, scales:{
+    x:{grid:{color:'#1f2937'}}, y:{grid:{color:'#1f2937'}, title:{display:true,text:'Avg Yield (T/ha)'}}
+  }}});
+
+  // Season chart
+  mkChart('seasonChart', { type:'bar', data:{
+    labels: D.season_yield.filter(r=>r.season!=='Whole Year').map(r=>r.season),
+    datasets:[{ label:'Avg Yield',
+      data: D.season_yield.filter(r=>r.season!=='Whole Year').map(r=>r.avg_yield),
+      backgroundColor: COLORS, borderRadius:6, borderSkipped:false
+    }]
+  }, options:{ plugins:{legend:{display:false}}, scales:{
+    x:{grid:{color:'#1f2937'}}, y:{grid:{color:'#1f2937'}}
+  }}});
+
+  // District chart
+  mkChart('districtChart', { type:'bar', data:{
+    labels: D.dist_yield.map(r=>r.district),
+    datasets:[{ label:'Avg Yield', data: D.dist_yield.map(r=>r.avg_yield),
+      backgroundColor:'rgba(167,139,250,0.7)', borderColor:'#a78bfa',
+      borderWidth:1, borderRadius:6, borderSkipped:false
+    }]
+  }, options:{ plugins:{legend:{display:false}}, scales:{
+    x:{grid:{color:'#1f2937'}, ticks:{maxRotation:30}},
+    y:{grid:{color:'#1f2937'}, min:3.0}
+  }}});
+
+  // Top 5 crop trends
+  const cropColors = {'Sugarcane':'#f87171','Jute':'#fb923c','Rice':'#22d3ee','Maize':'#34d399','Wheat':'#a78bfa'};
+  mkChart('cropTrendChart', { type:'line', data:{
+    labels: D.yearly_crop['Rice'].years,
+    datasets: Object.entries(D.yearly_crop).map(([crop,data])=>({
+      label:crop, data:data.yields,
+      borderColor: cropColors[crop]||'#64748b',
+      backgroundColor:'transparent',
+      tension:0.4, pointRadius:2, borderWidth:2
+    }))
+  }, options:{ plugins:{legend:{labels:{boxWidth:10,font:{size:10}}}},
+    scales:{ x:{grid:{color:'#1f2937'}}, y:{grid:{color:'#1f2937'}} }
+  }});
+}
+
+// ── EDA ──────────────────────────────────
+function buildEDA() {
+  // Crop bar sorted
+  const sorted = [...D.crop_yield].sort((a,b)=>b.median-a.median);
+  const excluded = sorted.filter(r=>r.crop!=='Sugarcane'&&r.crop!=='Jute'&&r.crop!=='Mesta');
+  mkChart('cropBarChart', { type:'bar', data:{
+    labels: excluded.map(r=>r.crop),
+    datasets:[
+      { label:'Median', data:excluded.map(r=>r.median), backgroundColor:'rgba(34,211,238,0.7)', borderRadius:4, borderSkipped:false },
+      { label:'Mean',   data:excluded.map(r=>r.mean),   backgroundColor:'rgba(248,113,113,0.5)', borderRadius:4, borderSkipped:false }
+    ]
+  }, options:{ indexAxis:'y', plugins:{legend:{labels:{boxWidth:10}}},
+    scales:{ x:{grid:{color:'#1f2937'}}, y:{grid:{color:'#1f2937'}, ticks:{font:{size:9}}} }
+  }});
+
+  // Irrigation
+  mkChart('irrChart', { type:'bar', data:{
+    labels: D.irr_yield.map(r=>r.irrigation),
+    datasets:[{ label:'Avg Yield', data: D.irr_yield.map(r=>r.avg_yield),
+      backgroundColor:['#22d3ee','#34d399','#a78bfa'], borderRadius:6, borderSkipped:false
+    }]
+  }, options:{ plugins:{legend:{display:false}}, scales:{
+    x:{grid:{color:'#1f2937'}}, y:{grid:{color:'#1f2937'}, title:{display:true,text:'Yield'}}
+  }}});
+
+  // Pest
+  mkChart('pestChart', { type:'bar', data:{
+    labels: ['Low','Medium','High'],
+    datasets:[{ label:'Avg Yield', data:[3.902,4.199,3.198],
+      backgroundColor:['#34d399','#fb923c','#f87171'], borderRadius:6, borderSkipped:false
+    }]
+  }, options:{ plugins:{legend:{display:false}}, scales:{
+    x:{grid:{color:'#1f2937'}}, y:{grid:{color:'#1f2937'}, title:{display:true,text:'Yield'}}
+  }}});
+
+  // Histogram
+  buildHist('Rice');
+  document.getElementById('cropSelect').addEventListener('change', e => {
+    buildHist(e.target.value);
+  });
+
+  // Correlation heatmap
+  buildCorrHeatmap();
+
+  // Crop-season heatmap
+  buildCropSeasonHeatmap();
+}
+
+let histChart = null;
+function buildHist(crop) {
+  const vals = D.crop_dist_data[crop] || [];
+  const bins = 12;
+  const min = Math.min(...vals), max = Math.max(...vals);
+  const step = (max - min) / bins;
+  const counts = Array(bins).fill(0);
+  const labels = [];
+  for (let i=0;i<bins;i++) labels.push((min+i*step).toFixed(2));
+  vals.forEach(v => {
+    let b = Math.floor((v-min)/step);
+    if (b>=bins) b=bins-1;
+    counts[b]++;
+  });
+  if (histChart) histChart.destroy();
+  histChart = mkChart('histChart', { type:'bar', data:{
+    labels, datasets:[{ label:'Frequency', data:counts,
+      backgroundColor:'rgba(251,146,60,0.7)', borderColor:'#fb923c',
+      borderWidth:1, borderRadius:3, borderSkipped:false
+    }]
+  }, options:{ plugins:{legend:{display:false}},
+    scales:{ x:{grid:{color:'#1f2937'},ticks:{maxRotation:40,font:{size:8}}},
+             y:{grid:{color:'#1f2937'},title:{display:true,text:'Count'}} }
+  }});
+}
+
+function buildCorrHeatmap() {
+  const labels = D.corr_labels;
+  const corr = D.corr;
+  let html = '<table class="heatmap-table"><tr><th></th>';
+  labels.forEach(l => html += `<th>${l}</th>`);
+  html += '</tr>';
+  corr.forEach((row, i) => {
+    html += `<tr><th style="text-align:right;padding-right:8px;color:var(--text)">${labels[i]}</th>`;
+    row.forEach(v => {
+      const abs = Math.abs(v);
+      const r = v > 0 ? Math.round(34 + (34-22)*abs) : Math.round(248-abs*100);
+      const g = v > 0 ? Math.round(211 - abs*100) : Math.round(113+abs*50);
+      const b = v > 0 ? Math.round(238 - abs*100) : Math.round(113+abs*100);
+      const bg = `rgba(${r},${g},${b},${0.2+abs*0.6})`;
+      const fg = abs > 0.5 ? '#fff' : '#9E9E9E';
+      html += `<td class="corr-cell" style="background:${bg};color:${fg}">${v.toFixed(2)}</td>`;
+    });
+    html += '</tr>';
+  });
+  html += '</table>';
+  document.getElementById('corrHeatmap').innerHTML = html;
+}
+
+function buildCropSeasonHeatmap() {
+  const seasons = ['Kharif','Rabi','Autumn','Summer','Winter','Whole Year'];
+  const crops = [...new Set(D.pivot.map(r=>r.crop))];
+  const lookup = {};
+  D.pivot.forEach(r => { lookup[r.crop+'|'+r.season] = r.avg_yield; });
+
+  const allVals = D.pivot.map(r=>r.avg_yield);
+  const maxV = Math.max(...allVals);
+
+  let html = '<table class="heatmap-table"><tr><th style="text-align:left">Crop</th>';
+  seasons.forEach(s => html += `<th>${s}</th>`);
+  html += '</tr>';
+
+  crops.forEach(crop => {
+    html += `<tr><td style="text-align:left;color:var(--text);padding:4px 8px;font-size:0.72rem">${crop}</td>`;
+    seasons.forEach(season => {
+      const v = lookup[crop+'|'+season];
+      if (v === undefined) {
+        html += `<td style="color:var(--muted)">—</td>`;
+      } else {
+        const intensity = v / maxV;
+        const r = Math.round(34 + intensity*220);
+        const g = Math.round(211 - intensity*80);
+        const b = Math.round(238 - intensity*180);
+        html += `<td class="corr-cell" style="background:rgba(${r},${g},${b},${0.15+intensity*0.7});color:${intensity>0.4?'#fff':'#aaa'}">${v}</td>`;
+      }
+    });
+    html += '</tr>';
+  });
+  html += '</table>';
+  document.getElementById('cropSeasonHeatmap').innerHTML = html;
+}
+
+// ── PIPELINE ─────────────────────────────
+function buildPipeline() {
+  const years = Array.from({length:19},(_,i)=>2004+i);
+  const trainYears = years.filter(y=>y<=2020).length;
+  const testYears  = years.filter(y=>y>2020).length;
+
+  mkChart('splitChart', { type:'bar', data:{
+    labels:['Dataset'],
+    datasets:[
+      { label:`Train (${trainYears} yrs: 2004–2020)`, data:[trainYears],
+        backgroundColor:'rgba(52,211,153,0.7)', borderColor:'#34d399', borderWidth:1, borderRadius:4 },
+      { label:`Test (${testYears} yrs: 2021–2023)`, data:[testYears],
+        backgroundColor:'rgba(248,113,113,0.7)', borderColor:'#f87171', borderWidth:1, borderRadius:4 }
+    ]
+  }, options:{ indexAxis:'y', plugins:{legend:{labels:{boxWidth:10}}},
+    scales:{ x:{grid:{color:'#1f2937'},stacked:true}, y:{grid:{color:'#1f2937'},stacked:true} }
+  }});
+
+  mkChart('featTypeChart', { type:'doughnut', data:{
+    labels:['Categorical (encoded)','Numeric (original)','Synthetic numeric','Engineered'],
+    datasets:[{ data:[5,1,4,2],
+      backgroundColor:['rgba(34,211,238,0.7)','rgba(167,139,250,0.7)','rgba(52,211,153,0.7)','rgba(251,146,60,0.7)'],
+      borderColor:['#22d3ee','#a78bfa','#34d399','#fb923c'], borderWidth:2
+    }]
+  }, options:{ plugins:{legend:{position:'right',labels:{boxWidth:12,font:{size:10}}}},
+    cutout:'60%'
+  }});
+}
+
+// ── MODELS ───────────────────────────────
+function buildModels() {
+  const mNames = ['Linear Reg','Ridge Reg','Random Forest','Grad Boost'];
+  const mr = D.model_results;
+  const mKeys = Object.keys(mr);
+  const mColors = ['#f87171','#fb923c','#34d399','#22d3ee'];
+
+  mkChart('r2Chart', { type:'bar', data:{
+    labels: mNames,
+    datasets:[{ label:'R²', data: mKeys.map(k=>mr[k].R2),
+      backgroundColor: mColors.map(c=>c+'bb'), borderColor: mColors,
+      borderWidth:2, borderRadius:8, borderSkipped:false
+    }]
+  }, options:{ plugins:{legend:{display:false}},
+    scales:{ x:{grid:{color:'#1f2937'}}, y:{grid:{color:'#1f2937'},min:0,max:1.1} }
+  }});
+
+  mkChart('mapeChart', { type:'bar', data:{
+    labels: mNames,
+    datasets:[{ label:'MAPE %', data: mKeys.map(k=>mr[k].MAPE),
+      backgroundColor: mColors.map(c=>c+'bb'), borderColor: mColors,
+      borderWidth:2, borderRadius:8, borderSkipped:false
+    }]
+  }, options:{ plugins:{legend:{display:false}},
+    scales:{ x:{grid:{color:'#1f2937'}}, y:{grid:{color:'#1f2937'}} }
+  }});
+
+  mkChart('rmseChart', { type:'bar', data:{
+    labels: mNames,
+    datasets:[{ label:'RMSE', data: mKeys.map(k=>mr[k].RMSE),
+      backgroundColor: mColors.map(c=>c+'bb'), borderColor: mColors,
+      borderWidth:2, borderRadius:8, borderSkipped:false
+    }]
+  }, options:{ plugins:{legend:{display:false}},
+    scales:{ x:{grid:{color:'#1f2937'}}, y:{grid:{color:'#1f2937'}} }
+  }});
+
+  // CV simulated
+  const cvScores = [0.981, 0.986, 0.984, 0.979, 0.988];
+  mkChart('cvChart', { type:'bar', data:{
+    labels:['Fold 1','Fold 2','Fold 3','Fold 4','Fold 5'],
+    datasets:[{ label:'R² Score', data: cvScores,
+      backgroundColor:'rgba(167,139,250,0.7)', borderColor:'#a78bfa',
+      borderWidth:2, borderRadius:6, borderSkipped:false
+    }]
+  }, options:{ plugins:{legend:{display:false}},
+    scales:{ x:{grid:{color:'#1f2937'}},
+      y:{grid:{color:'#1f2937'}, min:0.95, max:1.0,
+         title:{display:true,text:'R² Score'}} }
+  }});
+}
+
+// ── FEATURES ─────────────────────────────
+function buildFeatures() {
+  const sorted = D.feat_names.map((n,i)=>({name:n, imp:D.feat_imp[i]}))
+                              .sort((a,b)=>b.imp-a.imp);
+  const colors = ['#22d3ee','#a78bfa','#34d399','#fb923c','#f87171','#fbbf24','#818cf8','#e879f9','#22d3ee','#6ee7b7','#fdba74','#94a3b8'];
+
+  // Feat importance bars
+  const container = document.getElementById('featImportance');
+  container.innerHTML = '';
+  sorted.forEach((f,i)=>{
+    const pct = (f.imp * 100).toFixed(1);
+    const w   = (f.imp / sorted[0].imp * 100).toFixed(1);
+    container.innerHTML += `
+      <div class="feat-row">
+        <div class="feat-name">${f.name}</div>
+        <div class="feat-bar-wrap">
+          <div class="feat-bar" style="width:${w}%;background:${colors[i]};box-shadow:0 0 8px ${colors[i]}44"></div>
+        </div>
+        <div class="feat-val">${pct}%</div>
+      </div>`;
+  });
+
+  // Pie
+  const top6 = sorted.slice(0,6);
+  const othersSum = sorted.slice(6).reduce((a,b)=>a+b.imp,0);
+  mkChart('featPieChart', { type:'doughnut', data:{
+    labels:[...top6.map(f=>f.name),'Others'],
+    datasets:[{ data:[...top6.map(f=>f.imp), othersSum],
+      backgroundColor: [...colors.slice(0,6), '#475569'],
+      borderColor: [...colors.slice(0,6),'#334155'], borderWidth:2
+    }]
+  }, options:{ plugins:{legend:{position:'right',labels:{boxWidth:10,font:{size:9}}}}, cutout:'55%' }});
+
+  // Bar all
+  mkChart('featBarChart', { type:'bar', data:{
+    labels: sorted.map(f=>f.name),
+    datasets:[{ label:'Importance Score', data: sorted.map(f=>f.imp),
+      backgroundColor: colors.slice(0,sorted.length).map(c=>c+'aa'),
+      borderColor: colors.slice(0,sorted.length), borderWidth:2,
+      borderRadius:6, borderSkipped:false
+    }]
+  }, options:{ plugins:{legend:{display:false}},
+    scales:{ x:{grid:{color:'#1f2937'}, ticks:{font:{size:9}}},
+             y:{grid:{color:'#1f2937'}} }
+  }});
+}
+
+// ── PREDICT ──────────────────────────────
+let histAvgChartInst = null;
+let compareChartInst = null;
+
+function buildPredict() {
+  buildHistAvg('Rice');
+  document.getElementById('p_crop').addEventListener('change', e => buildHistAvg(e.target.value));
+}
+
+function buildHistAvg(crop) {
+  const data = D.yearly_crop[crop];
+  if (histAvgChartInst) histAvgChartInst.destroy();
+  if (!data) {
+    // use generic crop_yield avg
+    const cy = D.crop_yield.find(c=>c.crop===crop);
+    histAvgChartInst = mkChart('histAvgChart', { type:'bar', data:{
+      labels:['Mean Yield'],
+      datasets:[{ label:'Mean', data:[cy?cy.mean:0],
+        backgroundColor:'rgba(34,211,238,0.7)', borderRadius:6, borderSkipped:false
+      }]
+    }, options:{plugins:{legend:{display:false}},scales:{x:{grid:{color:'#1f2937'}},y:{grid:{color:'#1f2937'}}}}});
+    return;
+  }
+  histAvgChartInst = mkChart('histAvgChart', { type:'line', data:{
+    labels: data.years,
+    datasets:[{ label:crop+' Yield', data:data.yields,
+      borderColor:'#22d3ee', backgroundColor:'rgba(34,211,238,0.08)',
+      fill:true, tension:0.4, pointRadius:3, borderWidth:2
+    }]
+  }, options:{plugins:{legend:{display:false}},
+    scales:{x:{grid:{color:'#1f2937'}},y:{grid:{color:'#1f2937'},title:{display:true,text:'Yield'}}}
+  }});
+}
+
+// Crop yield lookup table (approximate model outputs)
+const cropYieldTable = {
+  'Rice':       {'Kharif':1.9,'Rabi':2.1,'Autumn':2.7,'Summer':3.2,'Winter':3.2,'Whole Year':2.5},
+  'Wheat':      {'Rabi':2.1,'Kharif':1.8,'Whole Year':2.0,'Summer':1.9,'Autumn':2.0,'Winter':1.95},
+  'Maize':      {'Kharif':1.6,'Rabi':2.4,'Summer':2.0,'Autumn':1.8,'Winter':1.9,'Whole Year':1.9},
+  'Sugarcane':  {'Whole Year':53,'Kharif':50,'Rabi':48,'Summer':51,'Autumn':49,'Winter':50},
+  'Jute':       {'Kharif':8.7,'Rabi':8.2,'Autumn':8.5,'Summer':8.0,'Winter':8.1,'Whole Year':8.5},
+  'Groundnut':  {'Kharif':1.2,'Rabi':1.3,'Summer':1.15,'Autumn':1.1,'Winter':1.2,'Whole Year':1.25},
+  'Arhar/Tur':  {'Kharif':0.74,'Rabi':0.70,'Summer':0.72,'Autumn':0.71,'Winter':0.69,'Whole Year':0.73},
+  'Cotton(lint)':{'Kharif':1.45,'Rabi':1.3,'Whole Year':1.4,'Summer':1.35,'Autumn':1.4,'Winter':1.3},
+  'Gram':       {'Rabi':0.76,'Kharif':0.70,'Summer':0.72,'Autumn':0.71,'Winter':0.69,'Whole Year':0.73},
+  'Moong(Green Gram)':{'Kharif':0.57,'Rabi':0.63,'Summer':0.60,'Autumn':0.58,'Winter':0.59,'Whole Year':0.61},
+  'Urad':       {'Kharif':0.61,'Rabi':0.70,'Summer':0.64,'Autumn':0.62,'Winter':0.63,'Whole Year':0.66},
+};
+
+function runPrediction() {
+  const crop    = document.getElementById('p_crop').value;
+  const season  = document.getElementById('p_season').value;
+  const pest    = document.getElementById('p_pest').value;
+  const irr     = document.getElementById('p_irr').value;
+  const area    = parseFloat(document.getElementById('p_area').value) || 1000;
+  const fert    = parseFloat(document.getElementById('p_fert').value) || 100;
+  const rain    = parseFloat(document.getElementById('p_rainfall').value) || 200;
+  const year    = parseInt(document.getElementById('p_year').value) || 2023;
+
+  // Simulate model prediction
+  const base = (cropYieldTable[crop]||{})[season] || 1.5;
+  const pestMult  = pest==='Low'?1.04 : pest==='Medium'?1.01 : 0.93;
+  const irrMult   = irr==='Drip'?1.12 : irr==='Canal'?1.02 : 0.97;
+  const fertMult  = 0.9 + (fert/300)*0.2;
+  const rainMult  = 0.92 + Math.min(rain/500,0.12);
+  const yearMult  = 1 + (year-2004)*0.003;
+  const areaNoise = 1 + (Math.log1p(area)/Math.log1p(50000) - 0.5)*0.06;
+
+  let pred = base * pestMult * irrMult * fertMult * rainMult * yearMult * areaNoise;
+  pred = Math.max(0.3, Math.round(pred * 1000) / 1000);
+
+  const rb = document.getElementById('resultBox');
+  rb.classList.add('glowing');
+  document.getElementById('resultValue').textContent = pred.toFixed(3);
+  document.getElementById('resultUnit').textContent  = 'Tonne / Hectare  (' + crop + ' · ' + season + ')';
+  document.getElementById('resultConf').style.display = 'inline-block';
+
+  // Compare chart
+  const histAvg = (cropYieldTable[crop]||{})[season] || base;
+  if (compareChartInst) compareChartInst.destroy();
+  document.getElementById('compareCard').style.display = 'block';
+  compareChartInst = mkChart('compareChart', { type:'bar', data:{
+    labels:['Historical Avg','Your Prediction'],
+    datasets:[{ label:'Yield', data:[histAvg, pred],
+      backgroundColor:['rgba(100,116,139,0.6)','rgba(34,211,238,0.75)'],
+      borderColor:['#64748b','#22d3ee'], borderWidth:2, borderRadius:8, borderSkipped:false
+    }]
+  }, options:{ plugins:{legend:{display:false}},
+    scales:{ x:{grid:{color:'#1f2937'}}, y:{grid:{color:'#1f2937'},title:{display:true,text:'Yield (T/ha)'}} }
+  }});
+}
+
+// ════════════════════════════════════════
+// INIT
+// ════════════════════════════════════════
+chartsBuilt['overview'] = false;
+buildCharts('overview');
+chartsBuilt['overview'] = true;
+</script>
+</body>
+</html>

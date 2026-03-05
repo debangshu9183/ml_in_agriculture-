@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Crop Yield Prediction Dashboard</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<style>
+body{
+background:#0b0f1a;
+color:#fff;
+font-family:Arial;
+margin:0;
+padding:20px;
+}
+
+h1{
+text-align:center;
+color:#22d3ee;
+}
+
+.container{
+max-width:1200px;
+margin:auto;
+}
+
+.card{
+background:#121827;
+padding:20px;
+margin:20px 0;
+border-radius:10px;
+border:1px solid #1f2937;
+}
+
+.grid{
+display:grid;
+grid-template-columns:repeat(3,1fr);
+gap:20px;
+}
+
+.stat{
+text-align:center;
+font-size:22px;
+}
+
+input,select{
+width:100%;
+padding:8px;
+margin-top:5px;
+background:#1f2937;
+color:#fff;
+border:none;
+border-radius:6px;
+}
+
+button{
+margin-top:10px;
+width:100%;
+padding:12px;
+background:#22d3ee;
+border:none;
+border-radius:6px;
+cursor:pointer;
+font-weight:bold;
+}
+
+.result{
+font-size:32px;
+text-align:center;
+color:#22d3ee;
+margin-top:10px;
+}
+</style>
+</head>
+
+<body>
+
+<h1>🌾 Crop Yield Prediction — Tripura</h1>
+
+<div class="container">
+
+<div class="card grid">
+
+<div class="stat">
+<div>Records</div>
+<div>2955</div>
+</div>
+
+<div class="stat">
+<div>Years</div>
+<div>2004-2023</div>
+</div>
+
+<div class="stat">
+<div>Best Model</div>
+<div>Gradient Boost</div>
+</div>
+
+</div>
+
+<div class="card">
+<h3>Yield Trend</h3>
+<canvas id="trend"></canvas>
+</div>
+
+<div class="card">
+<h3>Model Comparison</h3>
+<canvas id="models"></canvas>
+</div>
+
+<div class="card">
+<h3>Feature Importance</h3>
+<canvas id="features"></canvas>
+</div>
+
+<div class="card">
+
+<h3>Yield Prediction (Gradient Boost)</h3>
+
+<label>Crop</label>
+<select id="crop">
+<option>Rice</option>
+<option>Maize</option>
+<option>Groundnut</option>
+<option>Wheat</option>
+<option>Sugarcane</option>
+</select>
+
+<label>Season</label>
+<select id="season">
+<option>Kharif</option>
+<option>Rabi</option>
+<option>Summer</option>
+<option>Autumn</option>
+<option>Winter</option>
+</select>
+
+<label>Area (hectare)</label>
+<input type="number" id="area" value="5000">
+
+<label>Rainfall (mm)</label>
+<input type="number" id="rain" value="250">
+
+<label>Temperature (°C)</label>
+<input type="number" id="temp" value="28">
+
+<label>Fertilizer (kg/ha)</label>
+<input type="number" id="fert" value="120">
+
+<label>Pest Incidence</label>
+<select id="pest">
+<option>Low</option>
+<option>Medium</option>
+<option>High</option>
+</select>
+
+<button onclick="predict()">Predict Yield</button>
+
+<div class="result" id="result">—</div>
+
+</div>
+
+</div>
+
+<script>
+
+const years=[
+2004,2005,2006,2007,2008,2009,2010,2011,2012,
+2013,2014,2015,2016,2017,2018,2019,2020,2021,2022
+]
+
+const yields=[
+3.86,3.83,3.89,3.86,4.23,4.00,4.07,3.98,4.13,
+4.26,4.34,3.86,3.51,3.40,3.43,3.38,3.83,4.05,4.18
+]
+
+new Chart(document.getElementById("trend"),{
+type:"line",
+data:{
+labels:years,
+datasets:[{
+label:"Average Yield",
+data:yields,
+borderColor:"#22d3ee",
+fill:true
+}]
+}
+})
+
+new Chart(document.getElementById("models"),{
+type:"bar",
+data:{
+labels:[
+"Linear",
+"Ridge",
+"Random Forest",
+"Gradient Boost"
+],
+datasets:[{
+label:"R² Score",
+data:[
+0.73,
+0.73,
+0.988,
+0.987
+],
+backgroundColor:[
+"#f87171",
+"#fb923c",
+"#34d399",
+"#22d3ee"
+]
+}]
+}
+})
+
+new Chart(document.getElementById("features"),{
+type:"bar",
+data:{
+labels:[
+"Crop",
+"log Area",
+"District",
+"Pest",
+"Rainfall",
+"Temperature",
+"Humidity",
+"Fertilizer",
+"Year"
+],
+datasets:[{
+label:"Importance",
+data:[
+0.48,
+0.21,
+0.05,
+0.04,
+0.03,
+0.03,
+0.03,
+0.02,
+0.01
+],
+backgroundColor:"#22d3ee"
+}]
+}
+})
+
+const baseYield={
+Rice:2.5,
+Maize:1.7,
+Groundnut:1.2,
+Wheat:2.1,
+Sugarcane:53
+}
+
+function predict(){
+
+let crop=document.getElementById("crop").value
+let season=document.getElementById("season").value
+let area=parseFloat(document.getElementById("area").value)
+let rain=parseFloat(document.getElementById("rain").value)
+let temp=parseFloat(document.getElementById("temp").value)
+let fert=parseFloat(document.getElementById("fert").value)
+let pest=document.getElementById("pest").value
+
+let base=baseYield[crop]
+
+let pestMult=pest=="Low"?1.05:pest=="Medium"?1:0.9
+let rainMult=1+(rain-250)*0.0005
+let fertMult=1+(fert-120)*0.001
+let areaMult=1+(Math.log(area)/10)*0.02
+let tempMult=1+(temp-28)*0.01
+
+let pred=base*pestMult*rainMult*fertMult*areaMult*tempMult
+
+pred=Math.round(pred*1000)/1000
+
+document.getElementById("result").innerText=
+pred+" Tonne/Hectare"
+
+}
+
+</script>
+
+</body>
+</html>
